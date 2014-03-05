@@ -41,13 +41,13 @@ end character_gen;
 architecture Behavioral of character_gen is
 
 
-COMPONENT Mux 
-port (
-			data: in unsigned ( 7 downto 0);
-			sel : in unsigned (2 downto 0);
-			output: out std_logic
-	);
-END COMPONENT;
+--COMPONENT Mux 
+--port (
+	--		data: in unsigned ( 7 downto 0);
+	--		sel : in unsigned (2 downto 0);
+	--		output: out std_logic
+	--);
+--END COMPONENT;
  
 
 COMPONENT font_rom
@@ -70,25 +70,20 @@ PORT (
          data_out_b : out std_logic_vector(7 downto 0) 
 			);
 END COMPONENT;
-signal mux_output, write_enabled, output : std_logic; 
-signal data_font: unsigned (7 downto 0); 
-signal buffer_out_a, buffer_out_b, font_data: std_logic_vector (7 downto 0); 
-signal count, count_next: std_logic_vector (11 downto 0); 
-signal address_signal, address, font_addr: std_logic_vector (10 downto 0);
-signal row_sig, row_sig_next: std_logic_vector (3 downto 0); 
+
+signal output : std_logic; 
+signal buffer_out_a, buffer_out_b, font_data, data_b_sig: std_logic_vector (7 downto 0); 
+signal count, count_next, address_b_12: std_logic_vector (11 downto 0); 
+signal font_addr: std_logic_vector (10 downto 0);
+signal row_sig: std_logic_vector (3 downto 0); 
 signal col_sig, col_sig_next, sel: std_logic_vector (2 downto 0); 
-signal address_b_12: std_logic_vector (11 downto 0); 
 signal address_b_sig: std_logic_vector ( 13 downto 0); 
-signal data_b_sig: std_logic_vector (7 downto 0);
-signal font_add: std_logic_vector (10 downto 0); 
-
-
 
 begin
 
 Inst_char_screen_buffer: char_screen_buffer PORT MAP(
 			clk => clk, 
-			we => write_enabled,
+			we => write_en,
 			address_a => count,
 			address_b => address_b_12,
 			data_in => ascii_to_write,
@@ -101,11 +96,7 @@ Inst_font_rom: font_rom PORT MAP (
 			addr => font_addr,
 			data => font_data
 			); 
-			
-
-
-
-
+--incrementing count machine
 	count <= std_logic_vector( unsigned (count_next) + 1) when rising_edge(write_en) else
 						count_next; 
 						
@@ -114,7 +105,7 @@ Inst_font_rom: font_rom PORT MAP (
 			count; 
 
 	sel <= col_sig_next(2 downto 0);
-
+-- in code mux
 	process (font_data, sel)
 	begin 
 		case sel is 
@@ -132,25 +123,23 @@ Inst_font_rom: font_rom PORT MAP (
 					output <= font_data(2);
 				when "110" => 
 					output <= font_data(1);
-				when "111" => 
+				when others => 
 					output <= font_data(0);
 		end case; 
 	end process; 
 
 -- insert processes for row_col, row_col2, etc
-font_add <= data_b_sig(6 downto 0) & row_sig; 
-
-
+	font_addr <= data_b_sig(6 downto 0) & row_sig; 
 	r <= (others => '1') when output = '1' else 
 			(others => '0');
-			
-
 	g <= (others => '0'); 
-	r <= (others => '0'); 
+	b <= (others => '0'); 
 	
 	
-	
-	address_b_sig <=  std_logic_vector(((unsigned(column(10 downto 3)))+unsigned (row(10 downto 4))*80));
+	-- I don't really get this... I have heard it explained by 2 people but 
+	--I just did what they said...
+	address_b_sig <=  std_logic_vector
+		(((unsigned(column(10 downto 3)))+ unsigned (row(10 downto 4))*80));
 	address_b_12 <= address_b_sig (11 downto 0); 
 	
 	
@@ -184,7 +173,7 @@ font_add <= data_b_sig(6 downto 0) & row_sig;
 
 
 
---not using mux on first run
+--not using mux on first run, using in code mux
 
 --process (mux_output)
 --begin 

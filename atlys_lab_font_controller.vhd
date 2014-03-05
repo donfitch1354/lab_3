@@ -33,6 +33,7 @@ entity atlys_lab_font_controller is
     Port ( clk : in  STD_LOGIC;
            reset : in  STD_LOGIC;
            start : in  STD_LOGIC;
+			  button_input : in std_logic;
            switch : in  STD_LOGIC_VECTOR (7 downto 0);
            led : out  STD_LOGIC_VECTOR (7 downto 0);
            tmds : out  STD_LOGIC_VECTOR (3 downto 0);
@@ -74,6 +75,14 @@ component vga_sync
            column :  out std_logic_vector(10 downto 0));
   end component vga_sync ;
 
+COMPONENT input_to_pulse
+		PORT (
+			clk: in std_logic; 
+			reset: in std_logic; 
+			input: in std_logic; 
+			pulse: out std_logic 
+			);
+end component; 
 begin
 
     -- Clock divider - creates pixel clock from 100MHz clock
@@ -111,19 +120,19 @@ begin
 				reset => reset, 
 				h_sync => h_sync_sig, 
 				v_sync=> v_sync_sig, 
-				v_completed =>  v_completed_sig, 
+				v_completed =>  open, 
 				blank => blank_sig, 
-				row => row_sig,
-				column => column_sig
+				row => row_connection,
+				column => column_connection
 	         																						
 				);
 		Inst_character_gen: character_gen PORT MAP (
 					clk => pixel_clk,
-					blank => blank_sig,
+					blank => blank_sig_2,
 					reset => reset, 
 					row => std_logic_vector(row_connection),
 					column=> std_logic_vector (column_connection),
-					ascii_to_write => ascii, 
+					ascii_to_write => switch, 
 					write_en => enable, 
 					r => red,
 					g => green, 
@@ -131,7 +140,12 @@ begin
 					);
 					
 	
-				
+		inst_input_to_pulse: input_to_pulse PORT MAP (
+					clk => pixel_clk,
+					reset => reset, 
+					input => button_input, 
+					pulse => enable
+					); 
 	 
 
     inst_dvid: entity work.dvid 
